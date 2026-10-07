@@ -65,6 +65,8 @@ import android.content.Context
 import androidx.core.content.FileProvider
 import java.io.File
 import androidx.compose.foundation.clickable
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -95,6 +97,44 @@ fun createImageUri(context: Context): Uri {
     )
 }
 
+fun calculateLevel(xp: Int): Int {
+    var level = 1
+    var xpRequired = 100
+    var totalRequired = 0
+
+    while (xp >= totalRequired + xpRequired) {
+        totalRequired += xpRequired
+        level++
+        xpRequired += 50
+    }
+
+    return level
+}
+
+fun xpForCurrentLevel(xp: Int): Int {
+    var levelXp = 0
+    var required = 100
+
+    while (xp >= levelXp + required) {
+        levelXp += required
+        required += 50
+    }
+
+    return levelXp
+}
+
+fun xpForNextLevel(xp: Int): Int {
+    var levelXp = 0
+    var required = 100
+
+    while (xp >= levelXp + required) {
+        levelXp += required
+        required += 50
+    }
+
+    return levelXp + required
+}
+
 @Composable
 fun CarDexApp() {
 
@@ -112,6 +152,35 @@ fun CarDexApp() {
 
     val cars = remember {
         mutableStateListOf<Car>()
+    }
+
+    var levelUpLevel by remember {
+        mutableStateOf<Int?>(null)
+    }
+
+    if (levelUpLevel != null) {
+        AlertDialog(
+            onDismissRequest = {
+                levelUpLevel = null
+            },
+            title = {
+                Text("🎉 Level Up!")
+            },
+            text = {
+                Text(
+                    "Congratulations! You reached Level $levelUpLevel."
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        levelUpLevel = null
+                    }
+                ) {
+                    Text("Awesome!")
+                }
+            }
+        )
     }
 
     // Load saved cars when the app starts
@@ -221,13 +290,21 @@ fun CarDexApp() {
                 SpotScreen(
                     onCarAdded = { car ->
 
+                        val oldTotalXp = cars.sumOf { it.xp }
+                        val oldLevel = calculateLevel(oldTotalXp)
+
                         cars.add(car)
+
+                        val newTotalXp = cars.sumOf { it.xp }
+                        val newLevel = calculateLevel(newTotalXp)
+
+                        if (newLevel > oldLevel) {
+                            levelUpLevel = newLevel
+                        }
 
                         scope.launch {
                             storage.saveCars(cars.toList())
                         }
-
-                        selectedTab = 1
                     },
                     nextId = cars.size + 1,
                     modifier = Modifier.padding(innerPadding)
@@ -1397,9 +1474,19 @@ fun HomeScreen(
 fun LevelCard(
     totalXp: Int
 ) {
+    val level = calculateLevel(totalXp)
+    val currentLevelXp = xpForCurrentLevel(totalXp)
+    val nextLevelXp = xpForNextLevel(totalXp)
 
-    val level = (totalXp / 100) + 1
-    val xpIntoLevel = totalXp % 100
+    val xpIntoLevel = totalXp - currentLevelXp
+    val xpNeededForLevel = nextLevelXp - currentLevelXp
+
+    val progress =
+        if (xpNeededForLevel > 0) {
+            xpIntoLevel.toFloat() / xpNeededForLevel
+        } else {
+            0f
+        }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -1408,18 +1495,16 @@ fun LevelCard(
             containerColor = MaterialTheme.colorScheme.primaryContainer
         )
     ) {
-
         Column(
             modifier = Modifier.padding(20.dp)
         ) {
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-
                 Column {
-
                     Text(
                         text = "LEVEL $level",
                         fontSize = 14.sp,
@@ -1453,10 +1538,11 @@ fun LevelCard(
                         shape = RoundedCornerShape(10.dp)
                     )
             ) {
-
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth(xpIntoLevel / 100f)
+                        .fillMaxWidth(
+                            progress.coerceIn(0f, 1f)
+                        )
                         .height(10.dp)
                         .background(
                             color = MaterialTheme.colorScheme.primary,
@@ -1469,8 +1555,30 @@ fun LevelCard(
                 modifier = Modifier.height(8.dp)
             )
 
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "$xpIntoLevel / $xpNeededForLevel XP",
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Text(
+                    text = "Level $level → ${level + 1}",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Spacer(
+                modifier = Modifier.height(4.dp)
+            )
+
             Text(
-                text = "${100 - xpIntoLevel} XP needed for Level ${level + 1}",
+                text = "${nextLevelXp - totalXp} XP needed for Level ${level + 1}",
                 fontSize = 13.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -1666,59 +1774,151 @@ fun ProfileScreen(
     totalXp: Int,
     modifier: Modifier = Modifier
 ) {
+    val level = calculateLevel(totalXp)
+    val currentLevelXp = xpForCurrentLevel(totalXp)
+    val nextLevelXp = xpForNextLevel(totalXp)
 
-    Column(
+    val xpIntoLevel = totalXp - currentLevelXp
+    val xpNeededForLevel = nextLevelXp - currentLevelXp
+
+    val progress =
+        if (xpNeededForLevel > 0) {
+            xpIntoLevel.toFloat() / xpNeededForLevel
+        } else {
+            0f
+        }
+
+    LazyColumn(
         modifier = modifier
             .fillMaxSize()
             .padding(24.dp),
-
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
 
-        Spacer(
-            modifier = Modifier.height(40.dp)
-        )
+        item {
+            Spacer(modifier = Modifier.height(20.dp))
 
-        Text(
-            text = "👤",
-            fontSize = 70.sp
-        )
-
-        Spacer(
-            modifier = Modifier.height(16.dp)
-        )
-
-        Text(
-            text = "Car Collector",
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Bold
-        )
-
-        Spacer(
-            modifier = Modifier.height(24.dp)
-        )
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-
-            StatItem(
-                value = cars.size.toString(),
-                label = "Cars"
+            Text(
+                text = "👤",
+                fontSize = 70.sp
             )
 
-            StatItem(
-                value = totalXp.toString(),
-                label = "XP"
-            )
+            Spacer(modifier = Modifier.height(8.dp))
 
-            StatItem(
-                value = cars.count {
-                    it.rarity == Rarity.LEGENDARY
-                }.toString(),
-                label = "Legendary"
+            Text(
+                text = "Car Collector",
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold
             )
+        }
+
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp)
+                ) {
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+
+                        Column {
+                            Text(
+                                text = "LEVEL $level",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            Text(
+                                text = "Car Collector",
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        Text(
+                            text = "$totalXp XP",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(10.dp)
+                            .background(
+                                color = MaterialTheme.colorScheme.surface,
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(
+                                    progress.coerceIn(0f, 1f)
+                                )
+                                .height(10.dp)
+                                .background(
+                                    color = MaterialTheme.colorScheme.primary,
+                                    shape = RoundedCornerShape(10.dp)
+                                )
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = "$xpIntoLevel / $xpNeededForLevel XP",
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Text(
+                        text = "${nextLevelXp - totalXp} XP needed for Level ${level + 1}",
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                StatItem(
+                    value = cars.size.toString(),
+                    label = "Cars"
+                )
+
+                StatItem(
+                    value = totalXp.toString(),
+                    label = "XP"
+                )
+
+                StatItem(
+                    value = cars.count {
+                        it.rarity == Rarity.LEGENDARY
+                    }.toString(),
+                    label = "Legendary"
+                )
+            }
+        }
+
+        item {
+            Spacer(modifier = Modifier.height(20.dp))
         }
     }
 }
