@@ -67,6 +67,8 @@ import java.io.File
 import androidx.compose.foundation.clickable
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
+import kotlinx.coroutines.flow.first
+
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -154,6 +156,10 @@ fun CarDexApp() {
         mutableStateListOf<Car>()
     }
 
+    var unlockedAchievementIds by remember {
+        mutableStateOf<Set<String>>(emptySet())
+    }
+
     var levelUpLevel by remember {
         mutableStateOf<Int?>(null)
     }
@@ -191,9 +197,22 @@ fun CarDexApp() {
             cars.clear()
             cars.addAll(savedCars)
         }
+
+        unlockedAchievementIds =
+            storage.unlockedAchievements.first()
     }
 
-    val totalXp = cars.sumOf { it.xp }
+    var unlockedAchievement by remember {
+        mutableStateOf<Achievement?>(null)
+    }
+
+    val achievementXp =
+        achievements
+            .filter { it.id in unlockedAchievementIds }
+            .sumOf { it.xpReward }
+
+    val totalXp =
+        cars.sumOf { it.xp } + achievementXp
 
     Scaffold(
         bottomBar = {
@@ -290,13 +309,59 @@ fun CarDexApp() {
                 SpotScreen(
                     onCarAdded = { car ->
 
-                        val oldTotalXp = cars.sumOf { it.xp }
+                        val oldTotalXp = totalXp
                         val oldLevel = calculateLevel(oldTotalXp)
+
+                        val oldUnlockedAchievements =
+                            getUnlockedAchievements(cars)
 
                         cars.add(car)
 
-                        val newTotalXp = cars.sumOf { it.xp }
-                        val newLevel = calculateLevel(newTotalXp)
+                        val newUnlockedAchievements =
+                            getUnlockedAchievements(cars)
+
+                        val newlyUnlockedAchievementIds =
+                            newUnlockedAchievements
+                                .filter {
+                                    it !in unlockedAchievementIds
+                                }
+
+                        if (newlyUnlockedAchievementIds.isNotEmpty()) {
+
+                            val updatedAchievementIds =
+                                unlockedAchievementIds +
+                                        newlyUnlockedAchievementIds
+
+                            unlockedAchievementIds =
+                                updatedAchievementIds
+
+                            scope.launch {
+                                storage.saveUnlockedAchievements(
+                                    updatedAchievementIds
+                                )
+                            }
+
+                            val firstNewAchievement =
+                                achievements.firstOrNull {
+                                    it.id == newlyUnlockedAchievementIds.first()
+                                }
+
+                            unlockedAchievement =
+                                firstNewAchievement
+                        }
+
+                        val newAchievementXp =
+                            achievements
+                                .filter {
+                                    it.id in unlockedAchievementIds
+                                }
+                                .sumOf { it.xpReward }
+
+                        val newTotalXp =
+                            cars.sumOf { it.xp } + newAchievementXp
+
+                        val newLevel =
+                            calculateLevel(newTotalXp)
 
                         if (newLevel > oldLevel) {
                             levelUpLevel = newLevel
@@ -309,6 +374,73 @@ fun CarDexApp() {
                     nextId = cars.size + 1,
                     modifier = Modifier.padding(innerPadding)
                 )
+                if (unlockedAchievement != null) {
+
+                    val achievement = unlockedAchievement!!
+
+                    AlertDialog(
+                        onDismissRequest = {
+                            unlockedAchievement = null
+                        },
+                        title = {
+                            Text("🏆 Achievement Unlocked!")
+                        },
+                        text = {
+                            Column {
+
+                                Text(
+                                    text = achievement.icon,
+                                    fontSize = 48.sp,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    textAlign = TextAlign.Center
+                                )
+
+                                Spacer(
+                                    modifier = Modifier.height(12.dp)
+                                )
+
+                                Text(
+                                    text = achievement.title,
+                                    fontSize = 22.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    textAlign = TextAlign.Center
+                                )
+
+                                Spacer(
+                                    modifier = Modifier.height(6.dp)
+                                )
+
+                                Text(
+                                    text = achievement.description,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    textAlign = TextAlign.Center
+                                )
+
+                                Spacer(
+                                    modifier = Modifier.height(12.dp)
+                                )
+
+                                Text(
+                                    text = "+${achievement.xpReward} XP",
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        },
+                        confirmButton = {
+                            TextButton(
+                                onClick = {
+                                    unlockedAchievement = null
+                                }
+                            ) {
+                                Text("Awesome!")
+                            }
+                        }
+                    )
+                }
             }
 
             3 -> {
@@ -1788,6 +1920,8 @@ fun ProfileScreen(
             0f
         }
 
+    val unlockedAchievementIds = getUnlockedAchievements(cars)
+
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
@@ -1918,7 +2052,103 @@ fun ProfileScreen(
         }
 
         item {
+            Text(
+                text = "Achievements",
+                modifier = Modifier.fillMaxWidth(),
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        items(achievements) { achievement ->
+
+            val unlocked =
+                achievement.id in unlockedAchievementIds
+
+            AchievementCard(
+                achievement = achievement,
+                unlocked = unlocked
+            )
+        }
+
+        item {
             Spacer(modifier = Modifier.height(20.dp))
+        }
+    }
+}
+
+@Composable
+fun AchievementCard(
+    achievement: Achievement,
+    unlocked: Boolean
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = if (unlocked) {
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer
+            )
+        } else {
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+        }
+    ) {
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+
+            Text(
+                text = if (unlocked) {
+                    achievement.icon
+                } else {
+                    "🔒"
+                },
+                fontSize = 36.sp
+            )
+
+            Spacer(
+                modifier = Modifier.width(16.dp)
+            )
+
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+
+                Text(
+                    text = achievement.title,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(
+                    modifier = Modifier.height(4.dp)
+                )
+
+                Text(
+                    text = achievement.description,
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                if (unlocked) {
+
+                    Spacer(
+                        modifier = Modifier.height(6.dp)
+                    )
+
+                    Text(
+                        text = "+${achievement.xpReward} XP",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
         }
     }
 }

@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import org.json.JSONArray
 import org.json.JSONObject
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 
 private val Context.dataStore by preferencesDataStore(
     name = "cardex_data"
@@ -19,6 +20,27 @@ class CarStorage(
 ) {
 
     private val carsKey = stringPreferencesKey("cars")
+
+    private val unlockedAchievementsKey =
+        stringSetPreferencesKey("unlocked_achievements")
+
+    suspend fun saveUnlockedAchievements(
+        achievementIds: Set<String>
+    ) {
+        context.dataStore.updateData { preferences ->
+
+            preferences.toMutablePreferences().apply {
+
+                this[unlockedAchievementsKey] = achievementIds
+            }
+        }
+    }
+
+    val unlockedAchievements: Flow<Set<String>> =
+        context.dataStore.data.map { preferences ->
+
+            preferences[unlockedAchievementsKey] ?: emptySet()
+        }
 
     val cars: Flow<List<Car>> =
         context.dataStore.data.map { preferences ->
