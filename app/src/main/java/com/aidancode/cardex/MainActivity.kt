@@ -52,6 +52,9 @@ import com.aidancode.cardex.model.Car
 import com.aidancode.cardex.model.Rarity
 import com.aidancode.cardex.ui.theme.CarDexTheme
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.material3.OutlinedTextField
 
 class MainActivity : ComponentActivity() {
 
@@ -368,13 +371,26 @@ fun SpotScreen(
         mutableStateOf("")
     }
 
+    var year by remember {
+        mutableStateOf("2026")
+    }
+
+    var trim by remember {
+        mutableStateOf("")
+    }
+
     var rarity by remember {
         mutableStateOf(Rarity.COMMON)
     }
 
+    val xp = xpForRarity(rarity)
+
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
+            .background(
+                MaterialTheme.colorScheme.background
+            )
             .padding(horizontal = 20.dp),
 
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -383,114 +399,119 @@ fun SpotScreen(
         item {
 
             Spacer(
-                modifier = Modifier.height(20.dp)
+                modifier = Modifier.height(16.dp)
             )
 
             Text(
                 text = "Spot a Car",
-                fontSize = 32.sp,
+                fontSize = 28.sp,
                 fontWeight = FontWeight.Bold
             )
 
             Text(
-                text = "Add a car you've spotted in the real world.",
+                text = "Add a car you've spotted to your CarDex.",
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
 
         item {
 
-            DropdownSelector(
-                title = "Manufacturer",
-                selected = manufacturer,
-                options = listOf(
-                    "BMW",
-                    "Honda",
-                    "Toyota",
-                    "Ford",
-                    "Chevrolet",
-                    "Mercedes-Benz",
-                    "Audi",
-                    "Volkswagen",
-                    "Subaru",
-                    "Nissan",
-                    "Hyundai",
-                    "Kia"
-                ),
-                onSelected = {
+            OutlinedTextField(
+                value = manufacturer,
+                onValueChange = {
                     manufacturer = it
-                }
-            )
-        }
-
-        item {
-
-            DropdownSelector(
-                title = "Model",
-                selected = model,
-                options = when (manufacturer) {
-                    "BMW" -> listOf(
-                        "M3",
-                        "M4",
-                        "M5",
-                        "M8",
-                        "3 Series",
-                        "5 Series"
-                    )
-
-                    "Honda" -> listOf(
-                        "Civic",
-                        "Accord",
-                        "CR-V",
-                        "Integra",
-                        "Pilot"
-                    )
-
-                    "Toyota" -> listOf(
-                        "Camry",
-                        "Corolla",
-                        "GR86",
-                        "Supra",
-                        "RAV4"
-                    )
-
-                    "Ford" -> listOf(
-                        "Mustang",
-                        "F-150",
-                        "Bronco",
-                        "Explorer",
-                        "Escape"
-                    )
-
-                    "Chevrolet" -> listOf(
-                        "Camaro",
-                        "Corvette",
-                        "Silverado",
-                        "Equinox"
-                    )
-
-                    else -> listOf("Other")
                 },
-                onSelected = {
-                    model = it
-                }
+                label = {
+                    Text("Manufacturer")
+                },
+                placeholder = {
+                    Text("BMW")
+                },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
             )
         }
 
         item {
 
-            DropdownSelector(
-                title = "Generation",
-                selected = generation,
-                options = listOf(
-                    "Current Generation",
-                    "Previous Generation",
-                    "Older Generation",
-                    "Unknown"
-                ),
-                onSelected = {
+            OutlinedTextField(
+                value = model,
+                onValueChange = {
+                    model = it
+                },
+                label = {
+                    Text("Model")
+                },
+                placeholder = {
+                    Text("M5")
+                },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+        }
+
+        item {
+
+            OutlinedTextField(
+                value = generation,
+                onValueChange = {
                     generation = it
-                }
+                },
+                label = {
+                    Text("Generation")
+                },
+                placeholder = {
+                    Text("G90")
+                },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+        }
+
+        item {
+
+            OutlinedTextField(
+                value = year,
+                onValueChange = { newValue ->
+
+                    if (
+                        newValue.all { character ->
+                            character.isDigit()
+                        } &&
+                        newValue.length <= 4
+                    ) {
+                        year = newValue
+                    }
+                },
+                label = {
+                    Text("Year")
+                },
+                placeholder = {
+                    Text("2026")
+                },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Number
+                )
+            )
+        }
+
+        item {
+
+            OutlinedTextField(
+                value = trim,
+                onValueChange = {
+                    trim = it
+                },
+                label = {
+                    Text("Trim")
+                },
+                placeholder = {
+                    Text("Competition")
+                },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
             )
         }
 
@@ -498,12 +519,23 @@ fun SpotScreen(
 
             DropdownSelector(
                 title = "Rarity",
-                selected = rarity.name,
+                selected = rarity.name
+                    .lowercase()
+                    .replaceFirstChar {
+                        it.uppercase()
+                    },
                 options = Rarity.entries.map {
                     it.name
+                        .lowercase()
+                        .replaceFirstChar { character ->
+                            character.uppercase()
+                        }
                 },
-                onSelected = {
-                    rarity = Rarity.valueOf(it)
+                onSelected = { selected ->
+
+                    rarity = Rarity.valueOf(
+                        selected.uppercase()
+                    )
                 }
             )
         }
@@ -514,7 +546,8 @@ fun SpotScreen(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(18.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                    containerColor =
+                        MaterialTheme.colorScheme.surfaceVariant
                 )
             ) {
 
@@ -523,9 +556,10 @@ fun SpotScreen(
                 ) {
 
                     Text(
-                        text = "SPOT PREVIEW",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold
+                        text = "Spot Preview",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
                     )
 
                     Spacer(
@@ -533,19 +567,32 @@ fun SpotScreen(
                     )
 
                     Text(
-                        text = if (manufacturer.isEmpty() || model.isEmpty()) {
-                            "Select a car"
+                        text = if (
+                            manufacturer.isNotBlank() ||
+                            model.isNotBlank()
+                        ) {
+                            "${year.ifBlank { "Year" }} " +
+                                    "${manufacturer.ifBlank { "Manufacturer" }} " +
+                                    model.ifBlank { "Model" }
                         } else {
-                            "$manufacturer $model"
+                            "Your spotted car"
                         },
-                        fontSize = 24.sp,
+                        fontSize = 20.sp,
                         fontWeight = FontWeight.Bold
                     )
 
-                    if (generation.isNotEmpty()) {
+                    if (generation.isNotBlank()) {
 
                         Text(
                             text = generation,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    if (trim.isNotBlank()) {
+
+                        Text(
+                            text = trim,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -555,8 +602,9 @@ fun SpotScreen(
                     )
 
                     Text(
-                        text = "${rarity.name} • +${xpForRarity(rarity)} XP",
-                        fontWeight = FontWeight.Bold
+                        text =
+                            "${rarity.name.lowercase().replaceFirstChar { it.uppercase() }} • +$xp XP",
+                        fontWeight = FontWeight.Medium
                     )
                 }
             }
@@ -567,42 +615,60 @@ fun SpotScreen(
             Button(
                 onClick = {
 
-                    if (manufacturer.isNotEmpty() && model.isNotEmpty()) {
+                    val newCar = Car(
+                        id = nextId,
 
-                        val newCar = Car(
-                            id = nextId,
-                            manufacturer = manufacturer,
-                            model = model,
-                            generation = generation.ifEmpty {
-                                "Unknown"
-                            },
-                            year = 2026,
-                            trim = "Unknown",
-                            rarity = rarity,
-                            xp = xpForRarity(rarity),
-                            dateSpotted = System.currentTimeMillis()
-                        )
+                        manufacturer = manufacturer,
 
-                        onCarAdded(newCar)
-                    }
+                        model = model,
+
+                        generation = generation.ifEmpty {
+                            "Unknown"
+                        },
+
+                        year = year.toIntOrNull()
+                            ?: 2026,
+
+                        trim = trim.ifEmpty {
+                            "Unknown"
+                        },
+
+                        rarity = rarity,
+
+                        xp = xp,
+
+                        dateSpotted =
+                            System.currentTimeMillis()
+                    )
+
+                    onCarAdded(newCar)
+
+                    manufacturer = ""
+                    model = ""
+                    generation = ""
+                    year = "2026"
+                    trim = ""
+                    rarity = Rarity.COMMON
                 },
 
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
 
-                enabled = manufacturer.isNotEmpty() && model.isNotEmpty()
+                enabled =
+                    manufacturer.isNotBlank() &&
+                            model.isNotBlank()
             ) {
 
                 Text(
-                    text = "🚗 Add to CarDex",
-                    fontSize = 16.sp
+                    text = "Add to CarDex",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
                 )
             }
-        }
-
-        item {
 
             Spacer(
-                modifier = Modifier.height(20.dp)
+                modifier = Modifier.height(16.dp)
             )
         }
     }
