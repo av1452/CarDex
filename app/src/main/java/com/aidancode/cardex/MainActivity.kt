@@ -510,6 +510,17 @@ fun CarDetailsScreen(
         item {
 
             Text(
+                text = "#${car.id.toString().padStart(3, '0')}",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(
+                modifier = Modifier.height(4.dp)
+            )
+
+            Text(
                 text = "${car.manufacturer} ${car.model}",
                 fontSize = 30.sp,
                 fontWeight = FontWeight.Bold
@@ -532,19 +543,28 @@ fun CarDetailsScreen(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp)
             ) {
-                Column(
-                    modifier = Modifier.padding(20.dp)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
 
-                    Text(
-                        text = car.rarity.name,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Spacer(
-                        modifier = Modifier.height(8.dp)
-                    )
+                    Surface(
+                        shape = RoundedCornerShape(50.dp),
+                        color = MaterialTheme.colorScheme.secondaryContainer
+                    ) {
+                        Text(
+                            text = car.rarity.name,
+                            modifier = Modifier.padding(
+                                horizontal = 14.dp,
+                                vertical = 8.dp
+                            ),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
 
                     Text(
                         text = "+${car.xp} XP",
@@ -557,27 +577,69 @@ fun CarDetailsScreen(
 
         item {
 
-            Text(
-                text = "Vehicle Details",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold
-            )
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp)
+                ) {
 
-            Spacer(
-                modifier = Modifier.height(8.dp)
-            )
+                    Text(
+                        text = "Vehicle Details",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
 
-            Text(
-                text = "Year: ${car.year}"
-            )
+                    Spacer(
+                        modifier = Modifier.height(16.dp)
+                    )
 
-            Text(
-                text = "Trim: ${car.trim}"
-            )
+                    Text(
+                        text = "Year",
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
 
-            Text(
-                text = "Spotted: ${formatDate(car.dateSpotted)}"
-            )
+                    Text(
+                        text = car.year.toString(),
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+
+                    Spacer(
+                        modifier = Modifier.height(12.dp)
+                    )
+
+                    Text(
+                        text = "Trim",
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Text(
+                        text = car.trim,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+
+                    Spacer(
+                        modifier = Modifier.height(12.dp)
+                    )
+
+                    Text(
+                        text = "Spotted",
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Text(
+                        text = formatDate(car.dateSpotted),
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
         }
 
         item {
