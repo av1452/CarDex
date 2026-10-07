@@ -64,6 +64,7 @@ import coil3.compose.AsyncImage
 import android.content.Context
 import androidx.core.content.FileProvider
 import java.io.File
+import androidx.compose.foundation.clickable
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -256,6 +257,24 @@ fun CarDexScreen(
         mutableStateOf<Rarity?>(null)
     }
 
+    var selectedCar by remember {
+        mutableStateOf<Car?>(null)
+    }
+
+    // Show the details screen when a car is selected
+    if (selectedCar != null) {
+
+        CarDetailsScreen(
+            car = selectedCar!!,
+            onBack = {
+                selectedCar = null
+            },
+            modifier = modifier
+        )
+
+        return
+    }
+
     val filteredCars = if (selectedRarity == null) {
         cars
     } else {
@@ -413,7 +432,151 @@ fun CarDexScreen(
         items(filteredCars) { car ->
 
             CarCard(
-                car = car
+                car = car,
+                modifier = Modifier.clickable {
+                    selectedCar = car
+                }
+            )
+        }
+
+        item {
+
+            Spacer(
+                modifier = Modifier.height(20.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun CarDetailsScreen(
+    car: Car,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    LazyColumn(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+
+        item {
+
+            Spacer(
+                modifier = Modifier.height(12.dp)
+            )
+
+            OutlinedButton(
+                onClick = onBack
+            ) {
+                Text("← Back to CarDex")
+            }
+        }
+
+        item {
+
+            if (car.photoUri.isNotEmpty()) {
+
+                AsyncImage(
+                    model = car.photoUri,
+                    contentDescription = "${car.manufacturer} ${car.model}",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(260.dp),
+                    contentScale = ContentScale.Crop
+                )
+
+            } else {
+
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(260.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "🚗",
+                            fontSize = 72.sp
+                        )
+                    }
+                }
+            }
+        }
+
+        item {
+
+            Text(
+                text = "${car.manufacturer} ${car.model}",
+                fontSize = 30.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(
+                modifier = Modifier.height(4.dp)
+            )
+
+            Text(
+                text = car.generation,
+                fontSize = 18.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        item {
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp)
+                ) {
+
+                    Text(
+                        text = car.rarity.name,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Spacer(
+                        modifier = Modifier.height(8.dp)
+                    )
+
+                    Text(
+                        text = "+${car.xp} XP",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+
+        item {
+
+            Text(
+                text = "Vehicle Details",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(
+                modifier = Modifier.height(8.dp)
+            )
+
+            Text(
+                text = "Year: ${car.year}"
+            )
+
+            Text(
+                text = "Trim: ${car.trim}"
+            )
+
+            Text(
+                text = "Spotted: ${formatDate(car.dateSpotted)}"
             )
         }
 
