@@ -55,7 +55,12 @@ import kotlinx.coroutines.launch
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.material3.OutlinedTextField
-
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.layout.ContentScale
+import android.net.Uri
+import androidx.activity.result.PickVisualMediaRequest
+import coil3.compose.AsyncImage
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -269,84 +274,76 @@ fun CarDexScreen(
 
 @Composable
 fun CarCard(
-    car: Car
+    car: Car,
+    modifier: Modifier = Modifier
 ) {
-
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp)
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp)
     ) {
+        Column {
 
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-
-            Surface(
-                modifier = Modifier.size(64.dp),
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.primaryContainer
-            ) {
-
-                Box(
-                    contentAlignment = Alignment.Center
+            if (car.photoUri.isNotEmpty()) {
+                AsyncImage(
+                    model = car.photoUri,
+                    contentDescription = "${car.manufacturer} ${car.model}",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant
                 ) {
-
-                    Text(
-                        text = "🚗",
-                        fontSize = 30.sp
-                    )
+                    Box(
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "🚗",
+                            fontSize = 56.sp
+                        )
+                    }
                 }
             }
 
-            Spacer(
-                modifier = Modifier.width(16.dp)
-            )
-
             Column(
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.padding(16.dp)
             ) {
+                Text(
+                    text = "${car.manufacturer} ${car.model}",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
-                    text = car.manufacturer,
+                    text = "${car.generation} • ${car.year} • ${car.trim}",
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                Text(
-                    text = car.model,
-                    fontSize = 21.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                Spacer(modifier = Modifier.height(10.dp))
 
-                Text(
-                    text = car.generation,
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = car.rarity.name,
+                        fontWeight = FontWeight.Bold
+                    )
 
-                Text(
-                    text = "${car.year} • ${car.trim}",
-                    fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            Column(
-                horizontalAlignment = Alignment.End
-            ) {
-
-                Text(
-                    text = car.rarity.name,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold
-                )
-
-                Text(
-                    text = "+${car.xp} XP",
-                    fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                    Text(
+                        text = "+${car.xp} XP",
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
     }
@@ -382,6 +379,18 @@ fun SpotScreen(
     var rarity by remember {
         mutableStateOf(Rarity.COMMON)
     }
+
+    var photoUri by remember {
+        mutableStateOf<Uri?>(null)
+    }
+
+    val photoPickerLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.PickVisualMedia()
+        ) { uri ->
+
+            photoUri = uri
+        }
 
     val xp = xpForRarity(rarity)
 
@@ -517,6 +526,51 @@ fun SpotScreen(
 
         item {
 
+            Button(
+                onClick = {
+
+                    photoPickerLauncher.launch(
+                        PickVisualMediaRequest(
+                            ActivityResultContracts.PickVisualMedia.ImageOnly
+                        )
+                    )
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+
+                Text(
+                    text = if (photoUri == null) {
+                        "📷 Choose Photo"
+                    } else {
+                        "📷 Change Photo"
+                    }
+                )
+            }
+        }
+
+        item {
+
+            if (photoUri != null) {
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(18.dp)
+                ) {
+
+                    AsyncImage(
+                        model = photoUri,
+                        contentDescription = "Car photo",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(220.dp),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+            }
+        }
+
+        item {
+
             DropdownSelector(
                 title = "Rarity",
                 selected = rarity.name
@@ -638,7 +692,9 @@ fun SpotScreen(
                         xp = xp,
 
                         dateSpotted =
-                            System.currentTimeMillis()
+                            System.currentTimeMillis(),
+
+                        photoUri = photoUri?.toString() ?: ""
                     )
 
                     onCarAdded(newCar)
@@ -649,6 +705,7 @@ fun SpotScreen(
                     year = "2026"
                     trim = ""
                     rarity = Rarity.COMMON
+                    photoUri = null
                 },
 
                 modifier = Modifier

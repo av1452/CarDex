@@ -96,6 +96,11 @@ class CarStorage(
                 car.dateSpotted
             )
 
+            objectJson.put(
+                "photoUri",
+                car.photoUri
+            )
+
             array.put(objectJson)
         }
 
@@ -153,6 +158,11 @@ class CarStorage(
                     dateSpotted = objectJson.optLong(
                         "dateSpotted",
                         0L
+                    ),
+
+                    photoUri = objectJson.optString(
+                        "photoUri",
+                        ""
                     )
                 )
             )

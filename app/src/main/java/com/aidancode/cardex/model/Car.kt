@@ -9,7 +9,8 @@ data class Car(
     val trim: String,
     val rarity: Rarity,
     val xp: Int,
-    val dateSpotted: Long
+    val dateSpotted: Long,
+    val photoUri: String = ""
 )
 
 enum class Rarity {
