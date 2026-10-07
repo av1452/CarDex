@@ -321,6 +321,12 @@ fun CarCard(
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+
+                Text(
+                    text = "${car.year} • ${car.trim}",
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
 
             Column(
@@ -570,8 +576,11 @@ fun SpotScreen(
                             generation = generation.ifEmpty {
                                 "Unknown"
                             },
+                            year = 2026,
+                            trim = "Unknown",
                             rarity = rarity,
-                            xp = xpForRarity(rarity)
+                            xp = xpForRarity(rarity),
+                            dateSpotted = System.currentTimeMillis()
                         )
 
                         onCarAdded(newCar)
