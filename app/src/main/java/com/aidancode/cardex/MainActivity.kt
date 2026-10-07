@@ -61,6 +61,9 @@ import androidx.compose.ui.layout.ContentScale
 import android.net.Uri
 import androidx.activity.result.PickVisualMediaRequest
 import coil3.compose.AsyncImage
+import android.content.Context
+import androidx.core.content.FileProvider
+import java.io.File
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -72,6 +75,23 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+}
+
+fun createImageUri(context: Context): Uri {
+    val imageDir = File(context.cacheDir, "images").apply {
+        mkdirs()
+    }
+
+    val imageFile = File(
+        imageDir,
+        "car_${System.currentTimeMillis()}.jpg"
+    )
+
+    return FileProvider.getUriForFile(
+        context,
+        "${context.packageName}.fileprovider",
+        imageFile
+    )
 }
 
 @Composable
@@ -392,6 +412,30 @@ fun SpotScreen(
             photoUri = uri
         }
 
+    val context = LocalContext.current
+
+    var cameraUri by remember { mutableStateOf<Uri?>(null) }
+
+    val cameraLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.TakePicture()
+        ) { success ->
+            if (success) {
+                photoUri = cameraUri
+            }
+        }
+
+    val cameraPermissionLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.RequestPermission()
+        ) { granted ->
+            if (granted) {
+                val uri = createImageUri(context)
+                cameraUri = uri
+                cameraLauncher.launch(uri)
+            }
+        }
+
     val xp = xpForRarity(rarity)
 
     LazyColumn(
@@ -525,26 +569,33 @@ fun SpotScreen(
         }
 
         item {
-
-            Button(
-                onClick = {
-
-                    photoPickerLauncher.launch(
-                        PickVisualMediaRequest(
-                            ActivityResultContracts.PickVisualMedia.ImageOnly
-                        )
-                    )
-                },
-                modifier = Modifier.fillMaxWidth()
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                Button(
+                    onClick = {
+                        cameraPermissionLauncher.launch(
+                            android.Manifest.permission.CAMERA
+                        )
+                    },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("📷 Take Photo")
+                }
 
-                Text(
-                    text = if (photoUri == null) {
-                        "📷 Choose Photo"
-                    } else {
-                        "📷 Change Photo"
-                    }
-                )
+                Button(
+                    onClick = {
+                        photoPickerLauncher.launch(
+                            PickVisualMediaRequest(
+                                ActivityResultContracts.PickVisualMedia.ImageOnly
+                            )
+                        )
+                    },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("🖼️ Choose Photo")
+                }
             }
         }
 
