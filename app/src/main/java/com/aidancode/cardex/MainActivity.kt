@@ -249,6 +249,18 @@ fun CarDexScreen(
     cars: List<Car>,
     modifier: Modifier = Modifier
 ) {
+    val totalCars = 100
+    val progress = (cars.size.toFloat() / totalCars).coerceAtMost(1f)
+
+    var selectedRarity by remember {
+        mutableStateOf<Rarity?>(null)
+    }
+
+    val filteredCars = if (selectedRarity == null) {
+        cars
+    } else {
+        cars.filter { it.rarity == selectedRarity }
+    }
 
     LazyColumn(
         modifier = modifier
@@ -276,7 +288,129 @@ fun CarDexScreen(
             )
         }
 
-        items(cars) { car ->
+        item {
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp)
+                ) {
+
+                    Text(
+                        text = "Collection Progress",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Spacer(
+                        modifier = Modifier.height(6.dp)
+                    )
+
+                    Text(
+                        text = "${cars.size} / $totalCars cars collected",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Spacer(
+                        modifier = Modifier.height(12.dp)
+                    )
+
+                    androidx.compose.material3.LinearProgressIndicator(
+                        progress = { progress },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(
+                        modifier = Modifier.height(8.dp)
+                    )
+
+                    Text(
+                        text = "${(progress * 100).toInt()}% complete",
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+
+        item {
+
+            Text(
+                text = "Filter by Rarity",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        item {
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+
+                FilterButton(
+                    text = "All",
+                    selected = selectedRarity == null,
+                    onClick = {
+                        selectedRarity = null
+                    }
+                )
+
+                FilterButton(
+                    text = "Common",
+                    selected = selectedRarity == Rarity.COMMON,
+                    onClick = {
+                        selectedRarity = Rarity.COMMON
+                    }
+                )
+
+                FilterButton(
+                    text = "Uncommon",
+                    selected = selectedRarity == Rarity.UNCOMMON,
+                    onClick = {
+                        selectedRarity = Rarity.UNCOMMON
+                    }
+                )
+            }
+        }
+
+        item {
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+
+                FilterButton(
+                    text = "Rare",
+                    selected = selectedRarity == Rarity.RARE,
+                    onClick = {
+                        selectedRarity = Rarity.RARE
+                    }
+                )
+
+                FilterButton(
+                    text = "Epic",
+                    selected = selectedRarity == Rarity.EPIC,
+                    onClick = {
+                        selectedRarity = Rarity.EPIC
+                    }
+                )
+
+                FilterButton(
+                    text = "Legendary",
+                    selected = selectedRarity == Rarity.LEGENDARY,
+                    onClick = {
+                        selectedRarity = Rarity.LEGENDARY
+                    }
+                )
+            }
+        }
+
+        items(filteredCars) { car ->
 
             CarCard(
                 car = car
@@ -293,6 +427,27 @@ fun CarDexScreen(
 }
 
 @Composable
+fun FilterButton(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    if (selected) {
+        Button(
+            onClick = onClick
+        ) {
+            Text(text)
+        }
+    } else {
+        OutlinedButton(
+            onClick = onClick
+        ) {
+            Text(text)
+        }
+    }
+}
+
+@Composable
 fun CarCard(
     car: Car,
     modifier: Modifier = Modifier
@@ -303,20 +458,21 @@ fun CarCard(
     ) {
         Column {
 
+            // Car photo
             if (car.photoUri.isNotEmpty()) {
                 AsyncImage(
                     model = car.photoUri,
                     contentDescription = "${car.manufacturer} ${car.model}",
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(180.dp),
+                        .height(200.dp),
                     contentScale = ContentScale.Crop
                 )
             } else {
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(180.dp),
+                        .height(200.dp),
                     color = MaterialTheme.colorScheme.surfaceVariant
                 ) {
                     Box(
@@ -333,9 +489,10 @@ fun CarCard(
             Column(
                 modifier = Modifier.padding(16.dp)
             ) {
+
                 Text(
                     text = "${car.manufacturer} ${car.model}",
-                    fontSize = 20.sp,
+                    fontSize = 21.sp,
                     fontWeight = FontWeight.Bold
                 )
 
@@ -347,26 +504,59 @@ fun CarCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = car.rarity.name,
-                        fontWeight = FontWeight.Bold
-                    )
+
+                    Surface(
+                        shape = RoundedCornerShape(50.dp),
+                        color = MaterialTheme.colorScheme.secondaryContainer
+                    ) {
+                        Text(
+                            text = car.rarity.name,
+                            modifier = Modifier.padding(
+                                horizontal = 12.dp,
+                                vertical = 6.dp
+                            ),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp
+                        )
+                    }
 
                     Text(
                         text = "+${car.xp} XP",
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp
                     )
                 }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Text(
+                    text = "📅 Spotted ${formatDate(car.dateSpotted)}",
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
+}
+
+fun formatDate(timestamp: Long): String {
+    if (timestamp == 0L) {
+        return "Unknown date"
+    }
+
+    val formatter = java.text.SimpleDateFormat(
+        "MMM d, yyyy",
+        java.util.Locale.getDefault()
+    )
+
+    return formatter.format(java.util.Date(timestamp))
 }
 
 @Composable
