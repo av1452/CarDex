@@ -17,17 +17,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -35,11 +36,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.aidancode.cardex.model.Car
+import com.aidancode.cardex.model.Rarity
 import com.aidancode.cardex.ui.theme.CarDexTheme
 
 class MainActivity : ComponentActivity() {
@@ -60,6 +62,35 @@ fun CarDexApp() {
 
     var selectedTab by remember {
         mutableIntStateOf(0)
+    }
+
+    val cars = remember {
+        listOf(
+            Car(
+                id = 1,
+                manufacturer = "BMW",
+                model = "M3",
+                generation = "G80",
+                rarity = Rarity.RARE,
+                xp = 50
+            ),
+            Car(
+                id = 2,
+                manufacturer = "Honda",
+                model = "Civic",
+                generation = "11th Generation",
+                rarity = Rarity.COMMON,
+                xp = 10
+            ),
+            Car(
+                id = 3,
+                manufacturer = "Ford",
+                model = "Mustang",
+                generation = "S650",
+                rarity = Rarity.UNCOMMON,
+                xp = 25
+            )
+        )
     }
 
     Scaffold(
@@ -151,10 +182,8 @@ fun CarDexApp() {
 
             // CARDEX
             1 -> {
-                PlaceholderScreen(
-                    title = "CarDex",
-                    subtitle = "Your collection will live here.",
-                    icon = "🚗",
+                CarDexScreen(
+                    cars = cars,
                     modifier = Modifier.padding(innerPadding)
                 )
             }
@@ -176,6 +205,137 @@ fun CarDexApp() {
                     subtitle = "Your stats and achievements will live here.",
                     icon = "👤",
                     modifier = Modifier.padding(innerPadding)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun CarDexScreen(
+    cars: List<Car>,
+    modifier: Modifier = Modifier
+) {
+
+    LazyColumn(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = 20.dp),
+
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+
+        item {
+
+            Spacer(
+                modifier = Modifier.height(20.dp)
+            )
+
+            Text(
+                text = "My CarDex",
+                fontSize = 32.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            Text(
+                text = "${cars.size} cars discovered",
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        items(cars) { car ->
+
+            CarCard(
+                car = car
+            )
+        }
+
+        item {
+
+            Spacer(
+                modifier = Modifier.height(20.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun CarCard(
+    car: Car
+) {
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+
+        shape = RoundedCornerShape(18.dp)
+    ) {
+
+        Row(
+            modifier = Modifier.padding(16.dp),
+
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+
+            Surface(
+                modifier = Modifier.size(64.dp),
+
+                shape = RoundedCornerShape(16.dp),
+
+                color = MaterialTheme.colorScheme.primaryContainer
+            ) {
+
+                Box(
+                    contentAlignment = Alignment.Center
+                ) {
+
+                    Text(
+                        text = "🚗",
+                        fontSize = 30.sp
+                    )
+                }
+            }
+
+            Spacer(
+                modifier = Modifier.width(16.dp)
+            )
+
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+
+                Text(
+                    text = car.manufacturer,
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Text(
+                    text = car.model,
+                    fontSize = 21.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Text(
+                    text = car.generation,
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Column(
+                horizontalAlignment = Alignment.End
+            ) {
+
+                Text(
+                    text = car.rarity.name,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Text(
+                    text = "+${car.xp} XP",
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -349,8 +509,6 @@ fun LevelCard() {
                 modifier = Modifier.height(16.dp)
             )
 
-            // XP PROGRESS BAR
-
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -487,8 +645,6 @@ fun CollectionCard() {
             Spacer(
                 modifier = Modifier.height(12.dp)
             )
-
-            // COLLECTION PROGRESS BAR
 
             Box(
                 modifier = Modifier
