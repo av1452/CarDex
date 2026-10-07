@@ -33,14 +33,17 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -48,6 +51,7 @@ import androidx.compose.ui.unit.sp
 import com.aidancode.cardex.model.Car
 import com.aidancode.cardex.model.Rarity
 import com.aidancode.cardex.ui.theme.CarDexTheme
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
@@ -69,33 +73,26 @@ fun CarDexApp() {
         mutableIntStateOf(0)
     }
 
+    val context = LocalContext.current
+
+    val storage = remember {
+        CarStorage(context)
+    }
+
+    val scope = rememberCoroutineScope()
+
     val cars = remember {
-        mutableStateListOf(
-            Car(
-                id = 1,
-                manufacturer = "BMW",
-                model = "M3",
-                generation = "G80",
-                rarity = Rarity.RARE,
-                xp = 50
-            ),
-            Car(
-                id = 2,
-                manufacturer = "Honda",
-                model = "Civic",
-                generation = "11th Generation",
-                rarity = Rarity.COMMON,
-                xp = 10
-            ),
-            Car(
-                id = 3,
-                manufacturer = "Ford",
-                model = "Mustang",
-                generation = "S650",
-                rarity = Rarity.UNCOMMON,
-                xp = 25
-            )
-        )
+        mutableStateListOf<Car>()
+    }
+
+    // Load saved cars when the app starts
+    LaunchedEffect(Unit) {
+
+        storage.cars.collect { savedCars ->
+
+            cars.clear()
+            cars.addAll(savedCars)
+        }
     }
 
     val totalXp = cars.sumOf { it.xp }
@@ -194,7 +191,13 @@ fun CarDexApp() {
             2 -> {
                 SpotScreen(
                     onCarAdded = { car ->
+
                         cars.add(car)
+
+                        scope.launch {
+                            storage.saveCars(cars.toList())
+                        }
+
                         selectedTab = 1
                     },
                     nextId = cars.size + 1,
@@ -420,11 +423,46 @@ fun SpotScreen(
                 title = "Model",
                 selected = model,
                 options = when (manufacturer) {
-                    "BMW" -> listOf("M3", "M4", "M5", "M8", "3 Series", "5 Series")
-                    "Honda" -> listOf("Civic", "Accord", "CR-V", "Integra", "Pilot")
-                    "Toyota" -> listOf("Camry", "Corolla", "GR86", "Supra", "RAV4")
-                    "Ford" -> listOf("Mustang", "F-150", "Bronco", "Explorer", "Escape")
-                    "Chevrolet" -> listOf("Camaro", "Corvette", "Silverado", "Equinox")
+                    "BMW" -> listOf(
+                        "M3",
+                        "M4",
+                        "M5",
+                        "M8",
+                        "3 Series",
+                        "5 Series"
+                    )
+
+                    "Honda" -> listOf(
+                        "Civic",
+                        "Accord",
+                        "CR-V",
+                        "Integra",
+                        "Pilot"
+                    )
+
+                    "Toyota" -> listOf(
+                        "Camry",
+                        "Corolla",
+                        "GR86",
+                        "Supra",
+                        "RAV4"
+                    )
+
+                    "Ford" -> listOf(
+                        "Mustang",
+                        "F-150",
+                        "Bronco",
+                        "Explorer",
+                        "Escape"
+                    )
+
+                    "Chevrolet" -> listOf(
+                        "Camaro",
+                        "Corvette",
+                        "Silverado",
+                        "Equinox"
+                    )
+
                     else -> listOf("Other")
                 },
                 onSelected = {
