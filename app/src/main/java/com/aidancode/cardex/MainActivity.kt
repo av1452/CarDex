@@ -202,8 +202,8 @@ fun CarDexApp() {
             storage.unlockedAchievements.first()
     }
 
-    var unlockedAchievement by remember {
-        mutableStateOf<Achievement?>(null)
+    val achievementQueue = remember {
+        mutableStateListOf<Achievement>()
     }
 
     val achievementXp =
@@ -335,19 +335,22 @@ fun CarDexApp() {
                             unlockedAchievementIds =
                                 updatedAchievementIds
 
+                            val newlyUnlockedAchievements =
+                                newlyUnlockedAchievementIds.mapNotNull { id ->
+                                    achievements.firstOrNull {
+                                        it.id == id
+                                    }
+                                }
+
+                            achievementQueue.addAll(
+                                newlyUnlockedAchievements
+                            )
+
                             scope.launch {
                                 storage.saveUnlockedAchievements(
                                     updatedAchievementIds
                                 )
                             }
-
-                            val firstNewAchievement =
-                                achievements.firstOrNull {
-                                    it.id == newlyUnlockedAchievementIds.first()
-                                }
-
-                            unlockedAchievement =
-                                firstNewAchievement
                         }
 
                         val newAchievementXp =
@@ -374,13 +377,13 @@ fun CarDexApp() {
                     nextId = cars.size + 1,
                     modifier = Modifier.padding(innerPadding)
                 )
-                if (unlockedAchievement != null) {
+                if (achievementQueue.isNotEmpty()) {
 
-                    val achievement = unlockedAchievement!!
+                    val achievement = achievementQueue.first()
 
                     AlertDialog(
                         onDismissRequest = {
-                            unlockedAchievement = null
+                            achievementQueue.removeAt(0)
                         },
                         title = {
                             Text("🏆 Achievement Unlocked!")
@@ -433,7 +436,7 @@ fun CarDexApp() {
                         confirmButton = {
                             TextButton(
                                 onClick = {
-                                    unlockedAchievement = null
+                                    achievementQueue.removeAt(0)
                                 }
                             ) {
                                 Text("Awesome!")
